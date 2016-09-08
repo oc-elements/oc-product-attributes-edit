@@ -1,5 +1,17 @@
 <link rel="import" href="../polymer/polymer.html">
 
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../paper-material/paper-material.html">
+<link rel="import" href="../paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../paper-listbox/paper-listbox.html">
+<link rel="import" href="../paper-item/paper-item.html">
+<link rel="import" href="../paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-toast/paper-toast.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+
 <!--
 `oc-product-attributes-edit`
 Element to display controls for editing product attributes on the Ordercloud platform
@@ -13,8 +25,92 @@ Element to display controls for editing product attributes on the Ordercloud pla
       :host {
         display: block;
       }
+
+      /*:host {*/
+      /*display: none;*/
+      /*}*/
+      :host[loaded] {
+        display: block;
+      }
+      .attribute {
+        @apply(--layout-horizontal);
+      }
+      .attribute paper-input,
+      .attribute paper-dropdown-menu {
+        @apply(--layout-flex);
+        --paper-input-container-label: {
+          text-align: left;
+        }
+      }
+      .attribute paper-input{
+        margin-right: 1em;
+        text-align: right;
+      }
+      .attribute paper-input:last-of-type,
+      .attribute paper-dropdown-menu {
+        text-align: left;
+      }
+      .attribute paper-icon-button {
+        margin-top: 1.2em;
+      }
+      paper-button:not([disabled]) {
+        background-color: var(--default-primary-color);
+        color: #FFFFFF;
+      }
+      #actions {
+        text-align: right;
+        margin-top: 1em;
+      }
+      #addAttribute paper-icon-button {
+        background-color: #42A5F5;
+        color: #FFFFFF;
+        --paper-icon-button-ink-color: #FFFFFF;
+      }
+
     </style>
-    <h2>Hello [[prop1]]</h2>
+
+    <template is="dom-repeat" items="[[ productAttributes ]]" as="attribute">
+      <div class="attribute">
+        <paper-input value="{{ attribute.name }}" placeholder="Name" label="[[ attribute.description ]]"></paper-input>
+        <paper-input value="{{ attribute.value }}" placeholder="Value" hidden$="[[ _attributeHasOptions(attribute) ]]"></paper-input>
+        <paper-dropdown-menu hidden$="[[ !_attributeHasOptions(attribute) ]]">
+          <paper-listbox class="dropdown-content" selected="{{ attribute.value }}" attr-for-selected="value">
+            <template is="dom-repeat" items="[[ attribute.options ]]" as="option">
+              <paper-item value="[[ option ]]">[[ option ]]</paper-item>
+            </template>
+          </paper-listbox>
+        </paper-dropdown-menu>
+        <span>
+    <paper-icon-button
+            on-tap="_removeAttribute"
+            attribute="[[ attribute ]]"
+            icon="icons:delete"
+            raised
+            disabled="[[ attribute.required ]]"
+    >
+    </paper-icon-button>
+    <paper-tooltip>[[ _getTrashTooltipMessage(attribute) ]]</paper-tooltip>
+    </span>
+
+      </div>
+    </template>
+
+    <div id="addAttribute" hidden$="[[ !availableAttributes.length ]]">
+      <paper-dropdown-menu label="Add attribute">
+        <paper-listbox id="allAttributes" class="dropdown-content" id="addAttributeSelector" selected="0" >
+          <template is="dom-repeat" items="[[ availableAttributes ]]" as="attribute">
+            <paper-item attribute="[[ attribute ]]">[[ attribute.name ]]</paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
+      <paper-icon-button on-tap="_addAttribute" icon="icons:add"></paper-icon-button>
+    </div>
+
+    <div id="actions">
+      <paper-button raised on-tap="_saveAttributes" id="saveBtn"><span>Save</span></paper-button>
+    </div>
+
+
   </template>
 
   <script>
@@ -23,11 +119,34 @@ Element to display controls for editing product attributes on the Ordercloud pla
       is: 'oc-product-attributes-edit',
 
       properties: {
-        prop1: {
-          type: String,
-          value: 'oc-product-attributes-edit',
-        },
+        productAttributes: Array,
+        availableAttributes: Array,
       },
+
+      _shouldHideSaveBtn: function(attributes) {
+        return (!attributes && !attributes.base && !attributes.base.length > 0)
+      },
+
+      _attributeHasOptions: function(attribute) {
+        return attribute.options.length > 0;
+      },
+
+      _getTrashTooltipMessage: function(attribute) {
+        return attribute.required ? 'Required' : 'Remove';
+      },
+
+      _addAttribute : function(e){
+        this.fire('attribute-add', this.$.allAttributes.selectedItem.attribute);
+        this.$.allAttributes.selected = 0;
+      },
+
+      _removeAttribute : function(e){
+        this.fire('attribute-remove', e.model.get('attribute'));
+      },
+
+      _saveAttributes : function(e) {
+        this.fire('attribute-save', this.productAttributes)
+      }
 
     });
   </script>
